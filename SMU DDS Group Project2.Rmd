@@ -1,0 +1,208 @@
+---
+title: "Project2"
+author: "YuMei, Anthony & Nitin"
+date: "March 31, 2018"
+output: html_document
+---
+
+
+---
+
+-- Executive Summary --  
+---
+The analysis uses the casestudy2Data provided to evaluate the ralationship between employee attrition and factors such as; Education, EnvironmentSatisfaction, JobInvolvement, JobSatisfaction , PerformanceRating , RelationshipSatisfaction , WorkLifeBalance e.t.c . The response variable is "attrition" which has two levels. Therefore, Random Forrest method was used to classify the data and identify the factors that are strongly associated with employee attrition. 
+
+Before apply the Random Forest analysis, we employed scatter plot and bar chart to explore the data itself, making sure the data is fit for random forest analysis.
+
+Two type of random forest R packages are utilized for analysis. The result are not identical, but pretty close. Both showed that Overtime is strongly associated with Attrition, folowed by Age and length of services. 
+
+-- Introduction --  
+---
+Any business is modeled for profit-making, and the management unit of any organization is tasked with ensuring that the goal is accomplished. It is therefore important for the human resource department to ensure that the personnel functions optimally.  One method used in ensuring that the personnel delivers as expected is monitoring employee performance from time to time and developing employee performance monitoring scale.  Sometimes, it might be necessary for an organization to take disciplain action if the goals of the business are not met.  
+
+
+```{r Attrition analysis, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Data Analysis predicting Employee Attrition
+dir()
+casestudy <- read.csv("E:\\University\\SMU\\Doing the Data Science\\Project2\\CaseStudy2data.csv", header = TRUE)
+head(casestudy)
+View(casestudy)
+
+casestudy$attri <- ifelse(casestudy$Attrition == "Yes", 1,0)
+
+casestudy$educ <- factor(casestudy$Education, levels = c(1,2,3,4,5), labels = c("Below College","College","Bachelor","Master","Doctor"))
+
+casestudy$environsat <- factor(casestudy$EnvironmentSatisfaction, levels = c(1,2,3,4), labels = c("Low","Medium","High","very High"))
+
+casestudy$jobinv  <- factor(casestudy$JobInvolvement, levels = c(1,2,3,4), labels = c("Low","Medium","High","very High"))
+
+casestudy$jobsat <- factor(casestudy$JobSatisfaction, levels = c(1,2,3,4), labels = c("Low","Medium","High","very High"))
+
+casestudy$perfrate  <- factor(casestudy$PerformanceRating, levels = c(1,2,3,4), labels = c("Low","Good","Excellent","Outstanding"))
+
+casestudy$relationsat <- factor(casestudy$RelationshipSatisfaction, levels = c(1,2,3,4), labels = c("Low","Medium","High","very High"))
+
+casestudy$workbal <- factor(casestudy$WorkLifeBalance, levels = c(1,2,3,4), labels = c("Bad","Good","Better","Best"))
+
+
+# descriptive Analysis of the data
+
+table(casestudy$Attrition)  # Number of employee who experienced attrition from the sample
+
+# Attrition by Education Level
+table(casestudy$Attrition, casestudy$educ)
+
+t1 <- table(casestudy$Attrition, casestudy$educ)
+t1
+barplot(t1, legend = row.names(t1), beside = TRUE)
+
+t2 <- table(casestudy$Attrition, casestudy$environsat)  # Environment satisfaction and Attrition. 
+t2
+barplot(t2,legend = row.names(t2), beside = TRUE, main = "Environment satisfation by Attrition")
+
+# Performance rate and Attrition
+
+t3 <- table(casestudy$Attrition, casestudy$perfrate)
+t3
+
+barplot(t3,legend = row.names(t3), beside = TRUE, main = "perfomance rate by Attrition")
+
+# Job Satisfaction and Attrition
+
+t4 <- table(casestudy$Attrition, casestudy$jobsat)
+t4
+barplot(t4,legend = row.names(t4), beside = TRUE, main = "Job Satisfaction by Attrition")
+
+# Job involvement by Attrition
+
+t5 <- table(casestudy$Attrition, casestudy$jobinv)
+t5
+barplot(t5,legend = row.names(t5), beside = TRUE, main = "Job Involvement by Attrition")
+
+# relationship satisfaction and Attrition
+
+t6 <- table(casestudy$Attrition, casestudy$relationsat)
+t6
+barplot(t6,legend = row.names(t6), beside = TRUE, main = "Relationsip satisfaction by Attrition")
+
+
+# EXAMINING THE EFFECT OF EDUCATION STATUS
+# Education status by Performance rating
+
+t7 <- table(casestudy$educ, casestudy$perfrate)
+t7
+barplot(t7,legend = row.names(t7), beside = TRUE, main = "Performance rating by Education level")
+
+
+#  Job Satisfaction by Education level
+
+t8 <- table(casestudy$educ, casestudy$jobsat)
+t8
+barplot(t8,legend = row.names(t8), beside = TRUE, main = "Job Satisfaction by Education level")
+```
+
+
+```{r project2, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+# read in dataset
+turnover<-read.csv("E:\\University\\SMU\\Doing the Data Science\\Project2\\CaseStudy2data.csv", header=TRUE,na.strings=c(""))
+# find out missing value
+sapply(turnover,function(x) sum(is.na(x)))
+# no missing values, but first column name looks odd.
+# find Column name "Age"
+require(dplyr)
+turnover1 = rename(turnover, Age = 'ï..Age')
+head(turnover1)
+# checking all variables before apply analytics
+str(turnover1)
+# remove NAs if any
+turnover2 <- na.omit(turnover1)
+
+## extract factor columns and drop variable with single level
+which(sapply(turnover2, function(x) { length(unique(x)) }) == 1)
+turnover3 <- turnover2[,-c(27,22,9)] 
+
+## count levels
+sapply(turnover3, nlevels)
+str(turnover3)
+
+# drop varibles that does not make sense for Attrition
+turnover4<-turnover3[-match("EmployeeNumber",names(turnover3))]
+head(turnover4)
+
+#remove DailyRate, HourlyRate and MonthlyRate, these variables are meaningful for company, not employee
+turnover51<- turnover4[, -grep("Rate$", colnames(turnover4))]
+
+# are any varibles correlated?
+turnover52 <- turnover51[sapply(turnover51,is.numeric)]
+pairs(turnover52[,1:4], pch = 19)
+# don't look like anything here
+pairs(turnover52[,5:8], pch = 19)
+# job level and monthly income have a strong relationship
+pairs(turnover52[,9:12], pch = 19)
+# performance rating and salary hike looks has a tight relationship
+pairs(turnover52[,13:16], pch = 19)
+# nothing here
+pairs(turnover52[,17:20], pch = 19)
+# we see visible correlation between 4 varibles that starts with Years. 
+str(turnover52)
+#finding few of them on scatter plot, attemptt to further verify with cor function
+cor(turnover52$Age,turnover52)
+cor(turnover52$PerformanceRating,turnover52)
+cor(turnover52$YearsAtCompany,turnover52)
+
+# combine varibles with strong coorlation
+AgeIncomeLevel<-turnover52$Age+turnover52$JobLevel*turnover52$MonthlyIncome
+RatingHike<-turnover52$PerformanceRating*turnover52$PercentSalaryHike
+Years<-turnover52$YearsAtCompany+turnover52$TotalWorkingYears+turnover52$YearsInCurrentRole+turnover52$YearsSinceLastPromotion+turnover52$YearsWithCurrManager
+# drop original varibles
+turnover53 = subset(turnover51, select = -c(Age,JobLevel,MonthlyIncome,PerformanceRating,PercentSalaryHike,YearsAtCompany,TotalWorkingYears,YearsInCurrentRole,YearsSinceLastPromotion,YearsWithCurrManager) )
+# add combined varibles
+turnover5<-cbind(turnover53, AgeIncomeLevel,RatingHike,Years)
+
+# use cforest to find outt what varibble are important to Attrition prediction 
+library(party)
+cf1 <- cforest(Attrition ~ . , data= turnover5, control=cforest_unbiased(mtry=5,ntree=50)) # fit the random forest
+cf1
+importance<-varimp(cf1) # get variable importance, based on mean decrease in accuracy
+#  plot importance
+importance1<-sort(importance, decreasing = TRUE)
+library(ggplot2)
+importance2 <- data.frame(x=names(importance1), y=importance1)
+importance3<-arrange(importance2, desc(y))
+
+ggplot(importance3, aes(x,y, fill=x)) + geom_bar(stat="identity")+ coord_flip()+
+  geom_text(aes(y=max(y), label=y), color="black")+
+  scale_fill_discrete(guide="none")+
+  theme_bw()+theme(panel.grid=element_blank())
+
+# cforest importance analysis shows "over time" is the number one contributing factor for Attrition. Followed by Years and AgeIncomeLevel. 
+
+AgeIncomeLevel<-turnover52$Age+turnover52$JobLevel*turnover52$MonthlyIncome
+RatingHike<-turnover52$PerformanceRating*turnover52$PercentSalaryHike
+Years<-turnover52$YearsAtCompany+turnover52$TotalWorkingYears+turnover52$YearsInCurrentRole+turnover52$YearsSinceLastPromotion+turnover52$YearsWithCurrManager
+
+# try random forest to verify the result
+library(randomForest)
+
+model.rf <- randomForest(Attrition~., turnover5, ntree=100, proximity=TRUE, importance=TRUE)
+meande<-importance(model.rf, type=1) #preferred
+
+meande4<-c(meande)
+names(meande4)<-c("BusinessTravel", "Department", "DistanceFromHome","Education", "EducationField", "EnvironmentSatisfaction", "Gender", "JobInvolvement", "JobRole", "JobSatisfaction", "MaritalStatus", "NumCompaniesWorked", "OverTime", "RelationshipSatisfaction", "StockOptionLevel", "TrainingTimesLastYear", "WorkLifeBalance", "AgeIncomeLevel", "RatingHike", "Years")
+
+meande5 <- data.frame(x=names(meande4), y=meande4)
+meande6<-arrange(meande5, desc(y))
+
+ggplot((meande6), aes(x,y, fill=x)) + geom_bar(stat="identity")+ coord_flip()+
+  geom_text(aes(y=max(y), label=y), color="black")+
+  scale_fill_discrete(guide="none")+
+  theme_bw()+theme(panel.grid=element_blank())
+
+# This clearly agrees with cforest package analysis result, that is "over time" is the dominant factor for Attrition. There are few secondary factors include "Years" which is a aggregate of several length  of service varibles; "AgeIncomeLevel" which is another aggregate varible for Age, Job Level and Monthly Income.  
+
+
+```
+
