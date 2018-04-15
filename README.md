@@ -79,3 +79,7 @@ WorkLifeBalance	1 'Bad'
 	2 'Good'
 	3 'Better'
 	4 'Best'
+	
+Project contact:
+Anthony Egbuniwe..........aegbuniwe@mail.smu.edu
+YuMei Bennett.............ybennett@mail.smu.edu
